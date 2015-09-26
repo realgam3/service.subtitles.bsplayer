@@ -147,6 +147,7 @@ class BSPlayer(object):
         res = root.find('.//return')
         if res.find('status').text == 'OK':
             self.token = res.find('data').text
+            self.log("BSPlayer.login", "Logged In Successfully.")
             return True
         return False
 
@@ -162,6 +163,7 @@ class BSPlayer(object):
         res = root.find('.//return')
         self.token = None
         if res.find('status').text == 'OK':
+            self.log("BSPlayer.logout", "Logged Out Successfully.")
             return True
         return False
 
@@ -186,11 +188,12 @@ class BSPlayer(object):
         )
         res = root.find('.//return/result')
         if res.find('status').text != 'OK':
-            return None
+            return []
 
         items = root.findall('.//return/data/item')
         subtitles = []
         if items:
+            self.log("BSPlayer.search_subtitles", "Subtitles Found.")
             for item in items:
                 subtitles.append(dict(
                     subID=item.find('subID').text,
@@ -206,22 +209,26 @@ class BSPlayer(object):
         return subtitles
 
     @staticmethod
-    def download_subtitles(download_url, dest_path=None):
+    def download_subtitles(download_url, dest_path=r"c:\tomerz.srt"):
         opener = urllib2.build_opener(HTTP10Handler)
         opener.addheaders = [('User-Agent', 'Mozilla/4.0 (compatible; Synapse)'),
                              ('Content-Length', 0)]
         res = opener.open(download_url)
-
-        gf = gzip.GzipFile(fileobj=StringIO(res.read()))
-        print gf.read()
-        gf.close()
-
-
-if __name__ == '__main__':
-    bsp = BSPlayer()
-    subs = bsp.search_subtitles(
-        r'..\..\..\Jurassic.World.2015.720p.BluRay.x264-SPARKS\jurassic.world.2015.720p.bluray.x264-sparks.rar',
-        logout=True
-    )
-    print subs[0]['subDownloadLink']
-    bsp.download_subtitles(subs[0]['subDownloadLink'])
+        if res:
+            gf = gzip.GzipFile(fileobj=StringIO(res.read()))
+            with open(dest_path, 'wb') as f:
+                f.write(gf.read())
+                f.flush()
+            gf.close()
+            return True
+        return False
+#
+#
+# if __name__ == '__main__':
+#     bsp = BSPlayer()
+#     subs = bsp.search_subtitles(
+#         r'..\..\..\Jurassic.World.2015.720p.BluRay.x264-SPARKS\jurassic.world.2015.720p.bluray.x264-sparks.rar',
+#         logout=True
+#     )
+#     print subs[0]['subDownloadLink']
+#     print bsp.download_subtitles(subs[0]['subDownloadLink'])
