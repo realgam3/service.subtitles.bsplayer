@@ -1,10 +1,12 @@
+import gzip
 import struct
 import random
-import urllib
 import urllib2
 import logging
 from os import path
+from StringIO import StringIO
 from xml.etree import ElementTree
+from httplib import HTTPConnection
 
 import rarfile
 
@@ -82,6 +84,16 @@ def movie_size_and_hash(file_path):
         return "IOError"
 
 
+class HTTP10Connection(HTTPConnection):
+    _http_vsn = 10
+    _http_vsn_str = "HTTP/1.0"
+
+
+class HTTP10Handler(urllib2.HTTPHandler):
+    def http_open(self, req):
+        return self.do_open(HTTP10Connection, req)
+
+
 class BSPlayer(object):
     def __init__(self, search_url=get_sub_domain(), log=python_logger):
         self.search_url = search_url
@@ -119,9 +131,7 @@ class BSPlayer(object):
         ).format(search_url=self.search_url, func_name=func_name, params=params)
 
         req = urllib2.Request(self.search_url, data, headers)
-        res = urllib2.urlopen(req).read()
-        print res
-        return ElementTree.fromstring(res)
+        return ElementTree.fromstring(urllib2.urlopen(req).read())
 
     def login(self):
         # If already logged in
@@ -179,24 +189,39 @@ class BSPlayer(object):
             return None
 
         items = root.findall('.//return/data/item')
-        for item in items:
-            print 'subID: %s' % item.find('subID').text
-            print 'subDownloadLink: %s' % item.find('subDownloadLink').text
-            print 'subLang: %s' % item.find('subLang').text
-            print 'subName: %s' % item.find('subName').text
-            print 'subFormat: %s' % item.find('subFormat').text
-            print
+        subtitles = []
+        if items:
+            for item in items:
+                subtitles.append(dict(
+                    subID=item.find('subID').text,
+                    subDownloadLink=item.find('subDownloadLink').text,
+                    subLang=item.find('subLang').text,
+                    subName=item.find('subName').text,
+                    subFormat=item.find('subFormat').text
+                ))
 
         if logout:
             self.logout()
 
+        return subtitles
+
     @staticmethod
-    def download_subtitles(self, id, dest_path):
-        pass
+    def download_subtitles(download_url, dest_path=None):
+        opener = urllib2.build_opener(HTTP10Handler)
+        opener.addheaders = [('User-Agent', 'Mozilla/4.0 (compatible; Synapse)'),
+                             ('Content-Length', 0)]
+        res = opener.open(download_url)
+
+        gf = gzip.GzipFile(fileobj=StringIO(res.read()))
+        print gf.read()
+        gf.close()
 
 
 if __name__ == '__main__':
-    with BSPlayer() as bsp:
-        bsp.search_subtitles(r'C:\Users\TzAnAnY\Desktop\Bsplayer Service\Jurassic.World.2015.720p.BluRay.x264-SPARKS\jurassic.world.2015.720p.bluray.x264-sparks.rar')
-        # bsp.search_subtitles(r'C:\Users\TzAnAnY\Desktop\Bsplayer Service\Jurassic.World.2015.720p.BluRay.x264-SPARKS\Jurassic.World.2015.720p.BluRay.x264-SPARKS.mkv')
-
+    bsp = BSPlayer()
+    subs = bsp.search_subtitles(
+        r'..\..\..\Jurassic.World.2015.720p.BluRay.x264-SPARKS\jurassic.world.2015.720p.bluray.x264-sparks.rar',
+        logout=True
+    )
+    print subs[0]['subDownloadLink']
+    bsp.download_subtitles(subs[0]['subDownloadLink'])
