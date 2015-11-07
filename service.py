@@ -40,11 +40,13 @@ def get_params(params_str=""):
 
 def get_video_path(xbmc_path=''):
     xbmc_path = xbmc_path or urlparse.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
-
     if xbmc_path.startswith('rar://'):
         return path.dirname(xbmc_path.replace('rar://', ''))
     elif xbmc_path.startswith('stack://'):
         return xbmc_path.split(" , ")[0].replace('stack://', '')
+    elif xbmc_path.startswith('http://') or xbmc_path.startswith('https://'):
+        xbmc.executebuiltin((u'Notification(%s,%s)' % (__scriptname__ , __language__(32001))).encode('utf-8'))
+        log("BSPlayer.get_video_path", "Streaming not supported.")
 
     return xbmc_path
 
@@ -62,12 +64,12 @@ def get_languages_dict(languages_param):
 
 
 params = get_params()
-log("BSPlayers.params", "Current Action: %s." % params['action'])
+log("BSPlayer.params", "Current Action: %s." % params['action'])
 if params['action'] == 'search':
     video_path = get_video_path()
-    log("BSPlayers.video_path", "Current Video Path: %s." % video_path)
+    log("BSPlayer.video_path", "Current Video Path: %s." % video_path)
     languages = get_languages_dict(params['languages'])
-    log("BSPlayers.languages", "Current Languages: %s." % languages)
+    log("BSPlayer.languages", "Current Languages: %s." % languages)
 
     with BSPlayer(log=log) as bsp:
         subtitles = bsp.search_subtitles(video_path, language_ids=languages.keys())
@@ -87,10 +89,11 @@ if params['action'] == 'search':
                     format=subtitle['subFormat']
                 ))
             )
-            log("BSPlayers.plugin_url", "Plugin Url Created: %s." % plugin_url)
+            log("BSPlayer.plugin_url", "Plugin Url Created: %s." % plugin_url)
             xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=plugin_url, listitem=list_item, isFolder=False)
 elif params['action'] == 'manualsearch':
-    log("BSPlayer.manualsearch", "Cannot Search Manually.")
+    xbmc.executebuiltin((u'Notification(%s,%s)' % (__scriptname__ , __language__(32002))).encode('utf-8'))
+    log("BSPlayer.manualsearch", "Manual search not supported.")
 elif params['action'] == 'download':
     if xbmcvfs.exists(__temp__):
         shutil.rmtree(__temp__)
@@ -101,7 +104,7 @@ elif params['action'] == 'download':
         if BSPlayer.download_subtitles(params['link'], subtitle_path):
             log("BSPlayer.download_subtitles", "Subtitles Download Successfully From: %s." % params['link'])
             list_item = xbmcgui.ListItem(label=subtitle_path)
-            log("BSPlayer.download", "Downloaded Subtitle Path: %s." % subtitle_path)
+            log("BSPlayer.download", "Downloaded Subtitle Path: %s" % subtitle_path)
             xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=subtitle_path, listitem=list_item, isFolder=False)
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]))

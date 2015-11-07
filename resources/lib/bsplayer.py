@@ -1,15 +1,16 @@
+import cookielib
 import gzip
-import struct
-import random
-import urllib2
 import logging
-from os import path
+import random
+import struct
+import urllib2
 from StringIO import StringIO
-from xml.etree import ElementTree
 from httplib import HTTPConnection
+from os import path
+from time import sleep
+from xml.etree import ElementTree
 
-import rarfile
-
+import xbmcvfs
 
 # s1-9, s101-109
 SUB_DOMAINS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9',
@@ -17,49 +18,85 @@ SUB_DOMAINS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9',
 API_URL_TEMPLATE = "http://{sub_domain}.api.bsplayer-subtitles.com/v1.php"
 
 
-def check_connectivity(url, timeout=5):
-    try:
-        urllib2.urlopen(url, timeout=timeout)
-    except urllib2.URLError:
-        return False
-    return True
-
-
 def get_sub_domain():
     sub_domains_end = len(SUB_DOMAINS) - 1
-    url = API_URL_TEMPLATE.format(sub_domain=SUB_DOMAINS[random.randint(0, sub_domains_end)])
+    return API_URL_TEMPLATE.format(sub_domain=SUB_DOMAINS[random.randint(0, sub_domains_end)])
 
-    while not check_connectivity(url):
-        url = API_URL_TEMPLATE.format(sub_domain=SUB_DOMAINS[random.randint(0, sub_domains_end)])
 
-    return url
+def get_session(proxies=None):
+    cj = cookielib.CookieJar()
+    proxy_handler = urllib2.ProxyHandler(proxies)
+    return urllib2.build_opener(urllib2.HTTPCookieProcessor(cj), proxy_handler)
 
 
 def python_logger(module, msg):
     logger = logging.getLogger('BSPlayer')
-    logger.log((u"### [%s] - %s" % (module, msg)), level=logging.DEBUG)
+    logger.log(logging.DEBUG, (u"### [%s] - %s" % (module, msg)))
 
 
-def generic_open(file_path):
-    rf = None
-    if path.splitext(file_path)[1] == '.rar':
-        rf = rarfile.RarFile(file_path)
-        rfi = rf.infolist()[0]
-        return rf, rf.open(rfi, 'r'), rfi.file_size
-    return rf, open(file_path, 'rb'), path.getsize(file_path)
+def OpensubtitlesHashRar(firsrarfile):
+    # log(__name__, "Hash Rar file")
+    f = xbmcvfs.File(firsrarfile)
+    a = f.read(4)
+    if a != 'Rar!':
+        raise Exception('ERROR: This is not rar file.')
+    seek = 0
+    for i in range(4):
+        f.seek(max(0, seek), 0)
+        a = f.read(100)
+        type, flag, size = struct.unpack('<BHH', a[2:2 + 5])
+        if 0x74 == type:
+            if 0x30 != struct.unpack('<B', a[25:25 + 1])[0]:
+                raise Exception('Bad compression method! Work only for "store".')
+            s_partiizebodystart = seek + size
+            s_partiizebody, s_unpacksize = struct.unpack('<II', a[7:7 + 2 * 4])
+            if (flag & 0x0100):
+                s_unpacksize = (struct.unpack('<I', a[36:36 + 4])[0] << 32) + s_unpacksize
+                # log(__name__, 'Hash untested for files biger that 2gb. May work or may generate bad hash.')
+            lastrarfile = getlastsplit(firsrarfile, (s_unpacksize - 1) / s_partiizebody)
+            hash = addfilehash(firsrarfile, s_unpacksize, s_partiizebodystart)
+            hash = addfilehash(lastrarfile, hash, (s_unpacksize % s_partiizebody) + s_partiizebodystart - 65536)
+            f.close()
+            return (s_unpacksize, "%016x" % hash)
+        seek += size
+    raise Exception('ERROR: Not Body part in rar file.')
+
+
+def getlastsplit(firsrarfile, x):
+    if firsrarfile[-3:] == '001':
+        return firsrarfile[:-3] + ('%03d' % (x + 1))
+    if firsrarfile[-11:-6] == '.part':
+        return firsrarfile[0:-6] + ('%02d' % (x + 1)) + firsrarfile[-4:]
+    if firsrarfile[-10:-5] == '.part':
+        return firsrarfile[0:-5] + ('%1d' % (x + 1)) + firsrarfile[-4:]
+    return firsrarfile[0:-2] + ('%02d' % (x - 1))
+
+
+def addfilehash(name, hash, seek):
+    f = xbmcvfs.File(name)
+    f.seek(max(0, seek), 0)
+    for i in range(8192):
+        hash += struct.unpack('<q', f.read(8))[0]
+        hash &= 0xffffffffffffffff
+    f.close()
+    return hash
 
 
 def movie_size_and_hash(file_path):
-    try:
-        longlong_format = '<q'  # little-endian long long
-        byte_size = struct.calcsize(longlong_format)
+    file_ext = path.splitext(file_path)[1]
+    if file_ext == '.rar' or file_ext =='.001':
+        return OpensubtitlesHashRar(file_path)
 
-        rf, f, file_size = generic_open(file_path)
-        movie_hash = file_size
+    longlong_format = '<q'  # little-endian long long
+    byte_size = struct.calcsize(longlong_format)
 
-        if file_size < 65536 * 2:
-            return "SizeError"
+    file_size = path.getsize(file_path)
+    movie_hash = file_size
 
+    if file_size < 65536 * 2:
+        raise Exception("SizeError")
+
+    with open(file_path, 'rb') as f:
         for x in range(65536 / byte_size):
             buff = f.read(byte_size)
             (l_value,) = struct.unpack(longlong_format, buff)
@@ -74,14 +111,7 @@ def movie_size_and_hash(file_path):
             movie_hash &= 0xFFFFFFFFFFFFFFFF
         returned_movie_hash = "%016x" % movie_hash
 
-        # Close File And RarFile
-        f.close()
-        if rf:
-            rf.close()
-
-        return file_size, returned_movie_hash
-    except IOError:
-        return "IOError"
+    return file_size, returned_movie_hash
 
 
 class HTTP10Connection(HTTPConnection):
@@ -95,8 +125,9 @@ class HTTP10Handler(urllib2.HTTPHandler):
 
 
 class BSPlayer(object):
-    def __init__(self, search_url=get_sub_domain(), log=python_logger):
-        self.search_url = search_url
+    def __init__(self, search_url=None, log=python_logger, proxies=None):
+        self.session = get_session(proxies)
+        self.search_url = search_url or get_sub_domain()
         self.token = None
         self.log = log
         if self.log.__name__ == 'python_logger':
@@ -113,7 +144,7 @@ class BSPlayer(object):
     def __exit__(self, exc_type, exc_val, exc_tb):
         return self.logout()
 
-    def api_request(self, func_name='logIn', params=''):
+    def api_request(self, func_name='logIn', params='', tries=5):
         headers = {
             'User-Agent': 'BSPlayer/2.x (1022.12360)',
             'Content-Type': 'text/xml; charset=utf-8',
@@ -130,8 +161,19 @@ class BSPlayer(object):
             '<ns1:{func_name}>{params}</ns1:{func_name}></SOAP-ENV:Body></SOAP-ENV:Envelope>'
         ).format(search_url=self.search_url, func_name=func_name, params=params)
 
-        req = urllib2.Request(self.search_url, data, headers)
-        return ElementTree.fromstring(urllib2.urlopen(req).read())
+        self.log("BSPlayer.api_request", 'Sending request: %s' % func_name)
+        for i in xrange(tries):
+            try:
+                self.session.addheaders.extend(headers.items())
+                res = self.session.open(self.search_url, data)
+                return ElementTree.fromstring(res.read())
+            except Exception, ex:
+                self.log("BSPlayer.api_request", ex)
+                if func_name == 'logIn':
+                    self.search_url = get_sub_domain()
+                sleep(1)
+
+        raise Exception('Too many tries...')
 
     def login(self):
         # If already logged in
@@ -175,6 +217,7 @@ class BSPlayer(object):
             language_ids = ",".join(language_ids)
 
         movie_size, movie_hash = movie_size_and_hash(movie_path)
+        self.log('BSPlayer.search_subtitles', 'Movie Size: %s, Movie Hash: %s' % (movie_size, movie_hash))
         root = self.api_request(
             func_name='searchSubtitles',
             params=(
@@ -209,8 +252,9 @@ class BSPlayer(object):
         return subtitles
 
     @staticmethod
-    def download_subtitles(download_url, dest_path=r"c:\tomerz.srt"):
-        opener = urllib2.build_opener(HTTP10Handler)
+    def download_subtitles(download_url, dest_path="Subtitle.srt", proxies=None):
+        proxy_handler = urllib2.ProxyHandler(proxies)
+        opener = urllib2.build_opener(HTTP10Handler, proxy_handler)
         opener.addheaders = [('User-Agent', 'Mozilla/4.0 (compatible; Synapse)'),
                              ('Content-Length', 0)]
         res = opener.open(download_url)
@@ -222,13 +266,14 @@ class BSPlayer(object):
             gf.close()
             return True
         return False
-#
+
 #
 # if __name__ == '__main__':
-#     bsp = BSPlayer()
+#     bsp = BSPlayer(proxies={'http': '207.91.10.234:8080'})
 #     subs = bsp.search_subtitles(
-#         r'..\..\..\Jurassic.World.2015.720p.BluRay.x264-SPARKS\jurassic.world.2015.720p.bluray.x264-sparks.rar',
+#         r'V:\Movies\Jackass.Presents.Bad.Grandpa.0.5.2014.720p.Bluray.x264.DTS-EVO\Jackass.Presents.Bad.Grandpa.0.5.2014.720p.Bluray.x264.DTS-EVO.mkv',
 #         logout=True
 #     )
-#     print subs[0]['subDownloadLink']
-#     print bsp.download_subtitles(subs[0]['subDownloadLink'])
+#     for sub in subs:
+#         print bsp.download_subtitles(sub['subDownloadLink'], proxies={'http': '207.91.10.234:8080'})
+#         break
