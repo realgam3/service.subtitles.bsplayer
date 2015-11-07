@@ -1,4 +1,4 @@
-import cookielib
+﻿import cookielib
 import gzip
 import logging
 import random
@@ -90,26 +90,28 @@ def movie_size_and_hash(file_path):
     longlong_format = '<q'  # little-endian long long
     byte_size = struct.calcsize(longlong_format)
 
-    file_size = path.getsize(file_path)
+    f = xbmcvfs.File(file_path)
+    file_size = f.size()
     movie_hash = file_size
 
     if file_size < 65536 * 2:
+        f.close()
         raise Exception("SizeError")
 
-    with open(file_path, 'rb') as f:
-        for x in range(65536 / byte_size):
-            buff = f.read(byte_size)
-            (l_value,) = struct.unpack(longlong_format, buff)
-            movie_hash += l_value
-            movie_hash &= 0xFFFFFFFFFFFFFFFF  # to remain as 64bit number
+    for x in range(65536 / byte_size):
+        buff = f.read(byte_size)
+        (l_value,) = struct.unpack(longlong_format, buff)
+        movie_hash += l_value
+        movie_hash &= 0xFFFFFFFFFFFFFFFF  # to remain as 64bit number
 
-        f.seek(max(0, file_size - 65536), 0)
-        for x in range(65536 / byte_size):
-            buff = f.read(byte_size)
-            (l_value,) = struct.unpack(longlong_format, buff)
-            movie_hash += l_value
-            movie_hash &= 0xFFFFFFFFFFFFFFFF
-        returned_movie_hash = "%016x" % movie_hash
+    f.seek(max(0, file_size - 65536), 0)
+    for x in range(65536 / byte_size):
+        buff = f.read(byte_size)
+        (l_value,) = struct.unpack(longlong_format, buff)
+        movie_hash += l_value
+        movie_hash &= 0xFFFFFFFFFFFFFFFF
+    returned_movie_hash = "%016x" % movie_hash
+    f.close()
 
     return file_size, returned_movie_hash
 
@@ -267,13 +269,13 @@ class BSPlayer(object):
             return True
         return False
 
-#
-# if __name__ == '__main__':
-#     bsp = BSPlayer(proxies={'http': '207.91.10.234:8080'})
-#     subs = bsp.search_subtitles(
-#         r'V:\Movies\Jackass.Presents.Bad.Grandpa.0.5.2014.720p.Bluray.x264.DTS-EVO\Jackass.Presents.Bad.Grandpa.0.5.2014.720p.Bluray.x264.DTS-EVO.mkv',
-#         logout=True
-#     )
-#     for sub in subs:
-#         print bsp.download_subtitles(sub['subDownloadLink'], proxies={'http': '207.91.10.234:8080'})
-#         break
+
+if __name__ == '__main__':
+    bsp = BSPlayer(proxies={'http': '207.91.10.234:8080'})
+    subs = bsp.search_subtitles(
+        r'V:\Movies\Jackass.Presents.Bad.Grandpa.0.5.2014.720p.Bluray.x264.DTS-EVO\Jackass.Presents.Bad.Grandpa.0.5.2014.720p.Bluray.x264.DTS-EVO.mkv',
+        logout=True
+    )
+    for sub in subs:
+        print bsp.download_subtitles(sub['subDownloadLink'], proxies={'http': '207.91.10.234:8080'})
+        break
