@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
-
 import sys
 import urllib
 import shutil
-import urlparse
 from os import path
 
 import xbmc
@@ -11,6 +9,9 @@ import xbmcvfs
 import xbmcgui
 import xbmcaddon
 import xbmcplugin
+
+from resources.lib.bsplayer import BSPlayer
+from resources.lib.utils import log, notify, get_params, get_video_path, get_languages_dict
 
 __addon__ = xbmcaddon.Addon()
 __author__ = __addon__.getAddonInfo('author')
@@ -24,56 +25,22 @@ __profile__ = xbmc.translatePath(__addon__.getAddonInfo('profile')).decode("utf-
 __resource__ = xbmc.translatePath(path.join(__cwd__, 'resources', 'lib')).decode("utf-8")
 __temp__ = xbmc.translatePath(path.join(__profile__, 'temp', '')).decode("utf-8")
 
-sys.path.append(__resource__)
-
-from bsplayer import BSPlayer
-
-
-def log(module, msg):
-    xbmc.log((u"### [%s] - %s" % (module, msg)).encode('utf-8'), level=xbmc.LOGDEBUG)
-
-
-def get_params(params_str=""):
-    params_str = params_str or sys.argv[2]
-    return dict(urlparse.parse_qsl(params_str.lstrip('?')))
-
-
-def get_video_path(xbmc_path=''):
-    xbmc_path = xbmc_path or urlparse.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
-    if xbmc_path.startswith('rar://'):
-        return path.dirname(xbmc_path.replace('rar://', ''))
-    elif xbmc_path.startswith('stack://'):
-        return xbmc_path.split(" , ")[0].replace('stack://', '')
-    elif xbmc_path.startswith('http://') or xbmc_path.startswith('https://'):
-        xbmc.executebuiltin((u'Notification(%s,%s)' % (__scriptname__ , __language__(32001))).encode('utf-8'))
-        log("BSPlayer.get_video_path", "Streaming not supported.")
-
-    return xbmc_path
-
-
-def get_languages_dict(languages_param):
-    langs = {}
-    for lang in languages_param.split(','):
-        if lang == "Portuguese (Brazil)":
-            langs["pob"] = lang
-        elif lang == "Greek":
-            langs["ell"] = lang
-        else:
-            langs[xbmc.convertLanguage(lang, xbmc.ISO_639_2)] = lang
-    return langs
-
 
 params = get_params()
 log("BSPlayer.params", "Current Action: %s." % params['action'])
 if params['action'] == 'search':
     video_path = get_video_path()
+    if video_path.startswith('http://') or video_path.startswith('https://'):
+        notify(__scriptname__, __language__, 32001)
+        log("BSPlayer.get_video_path", "Streaming not supported.")
+
     log("BSPlayer.video_path", "Current Video Path: %s." % video_path)
     languages = get_languages_dict(params['languages'])
     log("BSPlayer.languages", "Current Languages: %s." % languages)
 
-    with BSPlayer(log=log) as bsp:
+    with BSPlayer() as bsp:
         subtitles = bsp.search_subtitles(video_path, language_ids=languages.keys())
-        for subtitle in subtitles:
+        for subtitle in sorted(subtitles, key=lambda s: s['subLang']):
             list_item = xbmcgui.ListItem(
                 label=languages[subtitle['subLang']],
                 label2=subtitle['subName'],
@@ -92,7 +59,7 @@ if params['action'] == 'search':
             log("BSPlayer.plugin_url", "Plugin Url Created: %s." % plugin_url)
             xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=plugin_url, listitem=list_item, isFolder=False)
 elif params['action'] == 'manualsearch':
-    xbmc.executebuiltin((u'Notification(%s,%s)' % (__scriptname__ , __language__(32002))).encode('utf-8'))
+    notify(__scriptname__, __language__, 32002)
     log("BSPlayer.manualsearch", "Manual search not supported.")
 elif params['action'] == 'download':
     if xbmcvfs.exists(__temp__):
