@@ -1,7 +1,7 @@
 ﻿import gzip
 import random
 from time import sleep
-from io import StringIO
+from io import BytesIO
 from xml.etree import ElementTree
 
 from .utils import movie_size_and_hash, get_session, log
@@ -51,7 +51,7 @@ class BSPlayer(object):
         for i in range(tries):
             try:
                 self.session.addheaders.extend(list(headers.items()))
-                res = self.session.open(self.search_url, data)
+                res = self.session.open(self.search_url, data.encode('utf-8'))
                 return ElementTree.fromstring(res.read())
             except Exception as ex:
                 log("BSPlayer.api_request", "ERROR: %s." % ex)
@@ -144,7 +144,8 @@ class BSPlayer(object):
                              ('Content-Length', 0)]
         res = session.open(download_url)
         if res:
-            gf = gzip.GzipFile(fileobj=StringIO(res.read()))
+            out = res.read()
+            gf = gzip.GzipFile(fileobj=BytesIO(out))
             with open(dest_path, 'wb') as f:
                 f.write(gf.read())
                 f.flush()

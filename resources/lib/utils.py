@@ -14,11 +14,11 @@ import xbmcvfs
 
 
 def log(module, msg):
-    xbmc.log(("### [%s] - %s" % (module, msg)).encode('utf-8'), level=xbmc.LOGDEBUG)
+    xbmc.log("### [%s] - %s" % (module, msg), level=xbmc.LOGDEBUG)
 
 
 def notify(script_name, language, string_id):
-    xbmc.executebuiltin(('Notification(%s,%s)' % (script_name, language(string_id))).encode('utf-8'))
+    xbmc.executebuiltin('Notification(%s,%s)' % (script_name, language(string_id)))
 
 
 def get_params(params_str=""):
@@ -27,7 +27,7 @@ def get_params(params_str=""):
 
 
 def get_video_path(xbmc_path=''):
-    xbmc_path = xbmc_path or urllib.parse.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
+    xbmc_path = xbmc_path or urllib.parse.unquote(xbmc.Player().getPlayingFile())
     if xbmc_path.startswith('rar://'):
         return os.path.dirname(xbmc_path.replace('rar://', ''))
     elif xbmc_path.startswith('stack://'):
