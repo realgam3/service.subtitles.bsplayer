@@ -1,30 +1,30 @@
 import sys
 import struct
-import urllib2
-import urlparse
-import cookielib
+import urllib.request, urllib.error, urllib.parse
+import urllib.parse
+import http.cookiejar
 from os import path
-from httplib import HTTPConnection
+from http.client import HTTPConnection
 
 import xbmc
 import xbmcvfs
 
 
 def log(module, msg):
-    xbmc.log((u"### [%s] - %s" % (module, msg)).encode('utf-8'), level=xbmc.LOGDEBUG)
+    xbmc.log(("### [%s] - %s" % (module, msg)).encode('utf-8'), level=xbmc.LOGDEBUG)
 
 
 def notify(script_name, language, string_id):
-    xbmc.executebuiltin((u'Notification(%s,%s)' % (script_name, language(string_id))).encode('utf-8'))
+    xbmc.executebuiltin(('Notification(%s,%s)' % (script_name, language(string_id))).encode('utf-8'))
 
 
 def get_params(params_str=""):
     params_str = params_str or sys.argv[2]
-    return dict(urlparse.parse_qsl(params_str.lstrip('?')))
+    return dict(urllib.parse.parse_qsl(params_str.lstrip('?')))
 
 
 def get_video_path(xbmc_path=''):
-    xbmc_path = xbmc_path or urlparse.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
+    xbmc_path = xbmc_path or urllib.parse.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
     if xbmc_path.startswith('rar://'):
         return path.dirname(xbmc_path.replace('rar://', ''))
     elif xbmc_path.startswith('stack://'):
@@ -50,7 +50,7 @@ class HTTP10Connection(HTTPConnection):
     _http_vsn_str = "HTTP/1.0"
 
 
-class HTTP10Handler(urllib2.HTTPHandler):
+class HTTP10Handler(urllib.request.HTTPHandler):
     def http_open(self, req):
         return self.do_open(HTTP10Connection, req)
 
@@ -58,13 +58,13 @@ class HTTP10Handler(urllib2.HTTPHandler):
 def get_session(proxies=None, cookies=True, http_10=False):
     handlers = []
     if proxies:
-        handlers.append(urllib2.ProxyHandler(proxies))
+        handlers.append(urllib.request.ProxyHandler(proxies))
     if cookies:
-        cj = cookielib.CookieJar()
-        handlers.append(urllib2.HTTPCookieProcessor(cj))
+        cj = http.cookiejar.CookieJar()
+        handlers.append(urllib.request.HTTPCookieProcessor(cj))
     if http_10:
         handlers.append(HTTP10Handler)
-    return urllib2.build_opener(*handlers)
+    return urllib.request.build_opener(*handlers)
 
 
 def __get_last_split(firs_rar_file, x):

@@ -1,10 +1,10 @@
 ﻿import gzip
 import random
 from time import sleep
-from StringIO import StringIO
+from io import StringIO
 from xml.etree import ElementTree
 
-from utils import movie_size_and_hash, get_session, log
+from .utils import movie_size_and_hash, get_session, log
 
 # s1-9, s101-109
 SUB_DOMAINS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9',
@@ -48,12 +48,12 @@ class BSPlayer(object):
         ).format(search_url=self.search_url, func_name=func_name, params=params)
 
         log('BSPlayer.api_request', 'Sending request: %s.' % func_name)
-        for i in xrange(tries):
+        for i in range(tries):
             try:
-                self.session.addheaders.extend(headers.items())
+                self.session.addheaders.extend(list(headers.items()))
                 res = self.session.open(self.search_url, data)
                 return ElementTree.fromstring(res.read())
-            except Exception, ex:
+            except Exception as ex:
                 log("BSPlayer.api_request", "ERROR: %s." % ex)
                 if func_name == 'logIn':
                     self.search_url = get_sub_domain()

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import sys
-import urllib
+import urllib.request, urllib.parse, urllib.error
 import shutil
 from os import path
 
@@ -39,7 +39,7 @@ if params['action'] == 'search':
     log("BSPlayer.languages", "Current Languages: %s." % languages)
 
     with BSPlayer() as bsp:
-        subtitles = bsp.search_subtitles(video_path, language_ids=languages.keys())
+        subtitles = bsp.search_subtitles(video_path, language_ids=list(languages.keys()))
         for subtitle in sorted(subtitles, key=lambda s: s['subLang']):
             list_item = xbmcgui.ListItem(
                 label=languages[subtitle['subLang']],
@@ -49,7 +49,7 @@ if params['action'] == 'search':
 
             plugin_url = "plugin://{path}/?{query}".format(
                 path=__scriptid__,
-                query=urllib.urlencode(dict(
+                query=urllib.parse.urlencode(dict(
                     action='download',
                     link=subtitle['subDownloadLink'],
                     file_name=subtitle['subName'],
