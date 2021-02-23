@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-import sys
-import urllib.request, urllib.parse, urllib.error
 import shutil
-from os import path
+import sys
+import urllib.parse
+import os
 
 import xbmc
-import xbmcvfs
-import xbmcgui
 import xbmcaddon
+import xbmcgui
 import xbmcplugin
+import xbmcvfs
 
 from resources.lib.bsplayer import BSPlayer
 from resources.lib.utils import log, notify, get_params, get_video_path, get_languages_dict
@@ -22,8 +22,8 @@ __language__ = __addon__.getLocalizedString
 
 __cwd__ = xbmc.translatePath(__addon__.getAddonInfo('path')).decode("utf-8")
 __profile__ = xbmc.translatePath(__addon__.getAddonInfo('profile')).decode("utf-8")
-__resource__ = xbmc.translatePath(path.join(__cwd__, 'resources', 'lib')).decode("utf-8")
-__temp__ = xbmc.translatePath(path.join(__profile__, 'temp', '')).decode("utf-8")
+__resource__ = xbmc.translatePath(os.path.join(__cwd__, 'resources', 'lib')).decode("utf-8")
+__temp__ = xbmc.translatePath(os.path.join(__profile__, 'temp', '')).decode("utf-8")
 
 
 params = get_params()
@@ -67,7 +67,7 @@ elif params['action'] == 'download':
     xbmcvfs.mkdirs(__temp__)
 
     if params['format'] in ["srt", "sub", "txt", "smi", "ssa", "ass"]:
-        subtitle_path = path.join(__temp__, params['file_name'])
+        subtitle_path = os.path.join(__temp__, params['file_name'])
         if BSPlayer.download_subtitles(params['link'], subtitle_path):
             log("BSPlayer.download_subtitles", "Subtitles Download Successfully From: %s." % params['link'])
             list_item = xbmcgui.ListItem(label=subtitle_path)

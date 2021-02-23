@@ -1,9 +1,12 @@
-import sys
-import struct
-import urllib.request, urllib.error, urllib.parse
-import urllib.parse
 import http.cookiejar
-from os import path
+import os
+import struct
+import sys
+import urllib.error
+import urllib.parse
+import urllib.parse
+import urllib.request
+
 from http.client import HTTPConnection
 
 import xbmc
@@ -26,7 +29,7 @@ def get_params(params_str=""):
 def get_video_path(xbmc_path=''):
     xbmc_path = xbmc_path or urllib.parse.unquote(xbmc.Player().getPlayingFile().decode('utf-8'))
     if xbmc_path.startswith('rar://'):
-        return path.dirname(xbmc_path.replace('rar://', ''))
+        return os.path.dirname(xbmc_path.replace('rar://', ''))
     elif xbmc_path.startswith('stack://'):
         return xbmc_path.split(" , ")[0].replace('stack://', '')
 
@@ -92,7 +95,7 @@ def __movie_size_and_hash_rar(firs_rar_file):
     f = xbmcvfs.File(firs_rar_file)
     a = f.read(4)
     if a != 'Rar!':
-        log('utils.movie_size_and_hash', 'ERROR: This is not rar file (%s).' % path.basename(firs_rar_file))
+        log('utils.movie_size_and_hash', 'ERROR: This is not rar file (%s).' % os.path.basename(firs_rar_file))
         raise Exception('ERROR: This is not rar file.')
     seek = 0
     for i in range(4):
@@ -122,7 +125,7 @@ def __movie_size_and_hash_rar(firs_rar_file):
 
 
 def movie_size_and_hash(file_path):
-    file_ext = path.splitext(file_path)[1]
+    file_ext = os.path.splitext(file_path)[1]
     if file_ext == '.rar' or file_ext == '.001':
         return __movie_size_and_hash_rar(file_path)
 
