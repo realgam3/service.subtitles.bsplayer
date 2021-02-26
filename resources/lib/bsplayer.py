@@ -59,7 +59,8 @@ class BSPlayer(object):
             try:
                 self.session.addheaders.extend(list(headers.items()))
                 res = self.session.open(self.search_url, data.encode('utf-8'))
-                return ElementTree.fromstring(res.read())
+                msg = res.read().strip()
+                return ElementTree.fromstring(msg)
             except HTTPError as ex:
                 log.debug("BSPlayer.api_request", "ERROR: %s." % ex)
                 if func_name == 'logIn':
