@@ -12,6 +12,9 @@ from http.client import HTTPConnection
 import xbmc
 import xbmcvfs
 
+# little-endian long long
+LE_LONG_LOG = '<q'
+
 
 def log(module, msg):
     xbmc.log("### [%s] - %s" % (module, msg), level=xbmc.LOGDEBUG)
@@ -84,7 +87,7 @@ def __add_file_hash(name, file_hash, seek):
     f = xbmcvfs.File(name)
     f.seek(max(0, seek), 0)
     for i in range(8192):
-        file_hash += struct.unpack('<q', f.read(8))[0]
+        file_hash += struct.unpack(LE_LONG_LOG, f.read(8))[0]
         file_hash &= 0xffffffffffffffff
     f.close()
     return file_hash
@@ -129,8 +132,7 @@ def movie_size_and_hash(file_path):
     if file_ext == '.rar' or file_ext == '.001':
         return __movie_size_and_hash_rar(file_path)
 
-    longlong_format = '<q'  # little-endian long long
-    byte_size = struct.calcsize(longlong_format)
+    byte_size = struct.calcsize(LE_LONG_LOG)
 
     f = xbmcvfs.File(file_path)
     file_size = f.size()
@@ -141,16 +143,20 @@ def movie_size_and_hash(file_path):
         log('utils.movie_size_and_hash', "ERROR: SizeError (%d)." % file_size)
         raise Exception("SizeError")
 
-    for x in range(65536 / byte_size):
-        buff = f.read(byte_size)
-        (l_value,) = struct.unpack(longlong_format, buff)
+    chunks = 65536 // byte_size
+    mod = 65536 % byte_size
+    assert not mod, "Chunks should've been an integer, but they are not! (%d, %d)" % (byte_size, mod)
+
+    for x in range(chunks):
+        buff = f.readBytes(byte_size)
+        (l_value,) = struct.unpack(LE_LONG_LOG, buff)
         movie_hash += l_value
         movie_hash &= 0xFFFFFFFFFFFFFFFF  # to remain as 64bit number
 
     f.seek(max(0, file_size - 65536), 0)
-    for x in range(65536 / byte_size):
-        buff = f.read(byte_size)
-        (l_value,) = struct.unpack(longlong_format, buff)
+    for x in range(chunks):
+        buff = f.readBytes(byte_size)
+        (l_value,) = struct.unpack(LE_LONG_LOG, buff)
         movie_hash += l_value
         movie_hash &= 0xFFFFFFFFFFFFFFFF
     returned_movie_hash = "%016x" % movie_hash

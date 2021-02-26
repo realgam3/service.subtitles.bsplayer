@@ -1,8 +1,10 @@
 ﻿import gzip
 import random
+
 from time import sleep
 from io import BytesIO
 from xml.etree import ElementTree
+from urllib.error import HTTPError
 
 from .utils import movie_size_and_hash, get_session, log
 
@@ -31,6 +33,8 @@ class BSPlayer(object):
         return self.logout()
 
     def api_request(self, func_name='logIn', params='', tries=5):
+        last_ex = None
+
         headers = {
             'User-Agent': 'BSPlayer/2.x (1022.12360)',
             'Content-Type': 'text/xml; charset=utf-8',
@@ -53,13 +57,13 @@ class BSPlayer(object):
                 self.session.addheaders.extend(list(headers.items()))
                 res = self.session.open(self.search_url, data.encode('utf-8'))
                 return ElementTree.fromstring(res.read())
-            except Exception as ex:
+            except HTTPError as ex:
                 log("BSPlayer.api_request", "ERROR: %s." % ex)
                 if func_name == 'logIn':
                     self.search_url = get_sub_domain()
                 sleep(1)
         log('BSPlayer.api_request', 'ERROR: Too many tries (%d)...' % tries)
-        raise Exception('Too many tries...')
+        raise Exception('Too many tries...') from last_ex
 
     def login(self):
         # If already logged in
@@ -141,7 +145,7 @@ class BSPlayer(object):
     def download_subtitles(download_url, dest_path, proxies=None):
         session = get_session(proxies=proxies, http_10=True)
         session.addheaders = [('User-Agent', 'Mozilla/4.0 (compatible; Synapse)'),
-                             ('Content-Length', 0)]
+                              ('Content-Length', 0)]
         res = session.open(download_url)
         if res:
             out = res.read()
