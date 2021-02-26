@@ -12,12 +12,10 @@ from http.client import HTTPConnection
 import xbmc
 import xbmcvfs
 
+from resources.lib import log
+
 # little-endian long long
 LE_LONG_LOG = '<q'
-
-
-def log(module, msg):
-    xbmc.log("### [%s] - %s" % (module, msg), level=xbmc.LOGDEBUG)
 
 
 def notify(script_name, language, string_id):
@@ -94,11 +92,11 @@ def __add_file_hash(name, file_hash, seek):
 
 
 def __movie_size_and_hash_rar(firs_rar_file):
-    log('utils.movie_size_and_hash', 'Hashing Rar file...')
+    log.debug('utils.movie_size_and_hash', 'Hashing Rar file...')
     f = xbmcvfs.File(firs_rar_file)
     a = f.read(4)
     if a != 'Rar!':
-        log('utils.movie_size_and_hash', 'ERROR: This is not rar file (%s).' % os.path.basename(firs_rar_file))
+        log.debug('utils.movie_size_and_hash', 'ERROR: This is not rar file (%s).' % os.path.basename(firs_rar_file))
         raise Exception('ERROR: This is not rar file.')
     seek = 0
     for i in range(4):
@@ -107,14 +105,14 @@ def __movie_size_and_hash_rar(firs_rar_file):
         tipe, flag, size = struct.unpack('<BHH', a[2:2 + 5])
         if 0x74 == tipe:
             if 0x30 != struct.unpack('<B', a[25:25 + 1])[0]:
-                log('utils.movie_size_and_hash', 'Bad compression method! Work only for "store".')
+                log.debug('utils.movie_size_and_hash', 'Bad compression method! Work only for "store".')
                 raise Exception('Bad compression method! Work only for "store".')
             s_partiize_body_start = seek + size
             s_partiize_body, s_unpack_size = struct.unpack('<II', a[7:7 + 2 * 4])
             if flag & 0x0100:
                 s_unpack_size += (struct.unpack('<I', a[36:36 + 4])[0] << 32)
-                log('utils.movie_size_and_hash',
-                    'WARNING: Hash untested for files biger that 2gb. May work or may generate bad hash.')
+                log.debug('utils.movie_size_and_hash',
+                          'WARNING: Hash untested for files biger that 2gb. May work or may generate bad hash.')
             last_rar_file = __get_last_split(firs_rar_file, (s_unpack_size - 1) / s_partiize_body)
             file_hash = __add_file_hash(firs_rar_file, s_unpack_size, s_partiize_body_start)
             file_hash = __add_file_hash(
@@ -123,7 +121,7 @@ def __movie_size_and_hash_rar(firs_rar_file):
             f.close()
             return s_unpack_size, "%016x" % file_hash
         seek += size
-    log('utils.movie_size_and_hash', 'ERROR: Not Body part in rar file.')
+    log.debug('utils.movie_size_and_hash', 'ERROR: Not Body part in rar file.')
     raise Exception('ERROR: Not Body part in rar file.')
 
 

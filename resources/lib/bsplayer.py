@@ -6,7 +6,10 @@ from io import BytesIO
 from xml.etree import ElementTree
 from urllib.error import HTTPError
 
-from .utils import movie_size_and_hash, get_session, log
+import xbmc
+
+from . import log
+from .utils import movie_size_and_hash, get_session
 
 # s1-9, s101-109
 SUB_DOMAINS = ['s1', 's2', 's3', 's4', 's5', 's6', 's7', 's8', 's9',
@@ -51,18 +54,18 @@ class BSPlayer(object):
             '<ns1:{func_name}>{params}</ns1:{func_name}></SOAP-ENV:Body></SOAP-ENV:Envelope>'
         ).format(search_url=self.search_url, func_name=func_name, params=params)
 
-        log('BSPlayer.api_request', 'Sending request: %s.' % func_name)
+        log.debug('BSPlayer.api_request', 'Sending request: %s.' % func_name)
         for i in range(tries):
             try:
                 self.session.addheaders.extend(list(headers.items()))
                 res = self.session.open(self.search_url, data.encode('utf-8'))
                 return ElementTree.fromstring(res.read())
             except HTTPError as ex:
-                log("BSPlayer.api_request", "ERROR: %s." % ex)
+                log.debug("BSPlayer.api_request", "ERROR: %s." % ex)
                 if func_name == 'logIn':
                     self.search_url = get_sub_domain()
                 sleep(1)
-        log('BSPlayer.api_request', 'ERROR: Too many tries (%d)...' % tries)
+        log.debug('BSPlayer.api_request', 'ERROR: Too many tries (%d)...' % tries)
         raise Exception('Too many tries...') from last_ex
 
     def login(self):
@@ -79,7 +82,7 @@ class BSPlayer(object):
         res = root.find('.//return')
         if res.find('status').text == 'OK':
             self.token = res.find('data').text
-            log("BSPlayer.login", "Logged In Successfully.")
+            log.debug("BSPlayer.login", "Logged In Successfully.")
             return True
         return False
 
@@ -95,7 +98,7 @@ class BSPlayer(object):
         res = root.find('.//return')
         self.token = None
         if res.find('status').text == 'OK':
-            log("BSPlayer.logout", "Logged Out Successfully.")
+            log.debug("BSPlayer.logout", "Logged Out Successfully.")
             return True
         return False
 
@@ -107,7 +110,7 @@ class BSPlayer(object):
             language_ids = ",".join(language_ids)
 
         movie_size, movie_hash = movie_size_and_hash(movie_path)
-        log('BSPlayer.search_subtitles', 'Movie Size: %s, Movie Hash: %s.' % (movie_size, movie_hash))
+        log.debug('BSPlayer.search_subtitles', 'Movie Size: %s, Movie Hash: %s.' % (movie_size, movie_hash))
         root = self.api_request(
             func_name='searchSubtitles',
             params=(
@@ -126,7 +129,7 @@ class BSPlayer(object):
         items = root.findall('.//return/data/item')
         subtitles = []
         if items:
-            log("BSPlayer.search_subtitles", "Subtitles Found.")
+            log.debug("BSPlayer.search_subtitles", "Subtitles Found! (%d)" % len(items))
             for item in items:
                 subtitles.append(dict(
                     subID=item.find('subID').text,
@@ -135,6 +138,7 @@ class BSPlayer(object):
                     subName=item.find('subName').text,
                     subFormat=item.find('subFormat').text
                 ))
+            # log.debug("BSPlayer.search_subtitles", subtitles)
 
         if logout:
             self.logout()
