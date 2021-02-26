@@ -45,8 +45,8 @@ if params['action'] == 'search':
             list_item = xbmcgui.ListItem(
                 label=languages[subtitle['subLang']],
                 label2=subtitle['subName'],
-                thumbnailImage=xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1)
             )
+            list_item.setArt({'thumb': xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1)})
 
             plugin_url = "plugin://{path}/?{query}".format(
                 path=__scriptid__,
