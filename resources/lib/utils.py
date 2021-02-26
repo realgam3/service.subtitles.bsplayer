@@ -138,8 +138,9 @@ def movie_size_and_hash(file_path):
 
     if file_size < 65536 * 2:
         f.close()
-        log('utils.movie_size_and_hash', "ERROR: SizeError (%d)." % file_size)
-        raise Exception("SizeError")
+        msg = "ERROR: SizeError (%d)." % file_size
+        log.debug('utils.movie_size_and_hash', msg)
+        raise IOError(msg)
 
     chunks = 65536 // byte_size
     mod = 65536 % byte_size
