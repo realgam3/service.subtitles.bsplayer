@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import pprint
 import shutil
 import sys
 import urllib.parse
@@ -25,6 +26,8 @@ __cwd__ = xbmcvfs.translatePath(__addon__.getAddonInfo('path'))
 __profile__ = xbmcvfs.translatePath(__addon__.getAddonInfo('profile'))
 __resource__ = xbmcvfs.translatePath(os.path.join(__cwd__, 'resources', 'lib'))
 __temp__ = xbmcvfs.translatePath(os.path.join(__profile__, 'temp', ''))
+
+VALID_FORMATS = ["srt", "sub", "txt", "smi", "ssa", "ass"]
 
 
 def main():
@@ -68,13 +71,23 @@ def main():
             shutil.rmtree(__temp__)
         xbmcvfs.mkdirs(__temp__)
 
-        if params['format'] in ["srt", "sub", "txt", "smi", "ssa", "ass"]:
-            subtitle_path = os.path.join(__temp__, params['file_name'])
-            if BSPlayer.download_subtitles(params['link'], subtitle_path):
-                log.debug("BSPlayer.download_subtitles", "Subtitles Download Successfully From: %s." % params['link'])
-                list_item = xbmcgui.ListItem(label=subtitle_path)
-                log.debug("BSPlayer.download", "Downloaded Subtitle Path: %s" % subtitle_path)
-                xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=subtitle_path, listitem=list_item, isFolder=False)
+        if params['format'] not in VALID_FORMATS:
+            log.warn("BSPlayer.download",
+                     "Subtitle '%s' not in a valid format (%s)" % (params['file_name'], params['format']))
+            log.warn("BSPlayer.download", "Valid formats: [%s]" % pprint.pprint(VALID_FORMATS))
+            return
+
+        log.debug("BSPlayer.download_subtitles", "Downloading subtitles from %s" % params['link'])
+        subtitle_path = os.path.join(__temp__, params['file_name'])
+        if not BSPlayer.download_subtitles(params['link'], subtitle_path):
+            log.warn("BSPlayer.download_subtitles", "Failed to download subtitles!")
+            return
+
+        log.info("BSPlayer.download_subtitles", "Subtitles Download Successfully!")
+        list_item = xbmcgui.ListItem(label=subtitle_path)
+        log.debug("BSPlayer.download", "Path: %s" % subtitle_path)
+        xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=subtitle_path, listitem=list_item, isFolder=False)
+
 
 main()
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
