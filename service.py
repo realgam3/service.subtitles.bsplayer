@@ -54,6 +54,9 @@ def main():
                     'icon': subtitle['subRating'],
                     'thumb': xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1),
                 })
+                # # No notes on the payload, but these are available too:
+                # list_item.setProperty("sync", ("false", "true")[str(subtitle["MatchedBy"]) == "moviehash"])
+                # list_item.setProperty("hearing_imp", ("false", "true")[int(subtitle["SubHearingImpaired"]) != 0])
 
                 plugin_url = "plugin://{path}/?{query}".format(
                     path=__scriptid__,
@@ -67,6 +70,10 @@ def main():
                 log.debug("BSPlayer.plugin_url", "Plugin Url Created: %s." % plugin_url)
                 xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=plugin_url, listitem=list_item, isFolder=False)
     elif params['action'] == 'manualsearch':
+        # Don't write messages twice:
+        # https://github.com/xbmc/xbmc/tree/master/addons/skin.estuary/language
+        # ... however, kodi wants non-standard folder naming scheme FOR SOME REASON!
+        # https://phrase.com/blog/posts/i18n-advantages-babel-python/#Working_with_Locale_Data
         notify(__scriptname__, __language__, 32002)
         log.debug("BSPlayer.manualsearch", "Manual search not supported.")
     elif params['action'] == 'download':
