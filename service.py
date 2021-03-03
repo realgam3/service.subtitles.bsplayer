@@ -50,7 +50,10 @@ def main():
                     label=languages[subtitle['subLang']],
                     label2=subtitle['subName'],
                 )
-                list_item.setArt({'thumb': xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1)})
+                list_item.setArt({
+                    'icon': subtitle['subRating'],
+                    'thumb': xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1),
+                })
 
                 plugin_url = "plugin://{path}/?{query}".format(
                     path=__scriptid__,

@@ -112,17 +112,20 @@ class BSPlayer(object):
 
         movie_size, movie_hash = movie_size_and_hash(movie_path)
         log.debug('BSPlayer.search_subtitles', 'Movie Size: %s, Movie Hash: %s.' % (movie_size, movie_hash))
-        root = self.api_request(
-            func_name='searchSubtitles',
-            params=(
-                '<handle>{token}</handle>'
-                '<movieHash>{movie_hash}</movieHash>'
-                '<movieSize>{movie_size}</movieSize>'
-                '<languageId>{language_ids}</languageId>'
-                '<imdbId>*</imdbId>'
-            ).format(token=self.token, movie_hash=movie_hash,
-                     movie_size=movie_size, language_ids=language_ids)
-        )
+        params = (
+            '<handle>{token}</handle>'
+            '<movieHash>{movie_hash}</movieHash>'
+            '<movieSize>{movie_size}</movieSize>'
+            '<languageId>{language_ids}</languageId>'
+            '<imdbId>*</imdbId>'
+        ).format(token=self.token, movie_hash=movie_hash, movie_size=movie_size,
+                 language_ids=language_ids)
+        log.debug('BSPlayer.search_subtitles', 'Request: %s' % params)
+
+        root = self.api_request(func_name='searchSubtitles', params=params)
+        log.debug('BSPlayer.search_subtitles',
+                  'Response: %s' % ElementTree.tostring(root, encoding='unicode', method='xml'))
+
         res = root.find('.//return/result')
         if res.find('status').text != 'OK':
             return []
@@ -130,16 +133,16 @@ class BSPlayer(object):
         items = root.findall('.//return/data/item')
         subtitles = []
         if items:
-            log.debug("BSPlayer.search_subtitles", "Subtitles Found! (%d)" % len(items))
+            log.info("BSPlayer.search_subtitles", "Subtitles Found! (%d)" % len(items))
             for item in items:
                 subtitles.append(dict(
                     subID=item.find('subID').text,
                     subDownloadLink=item.find('subDownloadLink').text,
                     subLang=item.find('subLang').text,
                     subName=item.find('subName').text,
-                    subFormat=item.find('subFormat').text
+                    subFormat=item.find('subFormat').text,
+                    subRating=item.find('subRating').text,
                 ))
-            # log.debug("BSPlayer.search_subtitles", subtitles)
 
         if logout:
             self.logout()
