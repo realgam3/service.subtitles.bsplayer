@@ -14,5 +14,8 @@
     <source>https://github.com/realgam3/service.subtitles.bsplayer</source>
     <email>realgam3@gmail.com</email>
     <license>GNU GENERAL PUBLIC LICENSE. Version 2, June 1991</license>
+    <assets>
+      <icon>resources/icon.png</icon>
+    </assets>
   </extension>
 </addon>

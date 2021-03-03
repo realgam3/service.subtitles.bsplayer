@@ -44,5 +44,8 @@ endif
 
 $(VENV_PATH): ;
 
-kodi-package:
+kodi-addon-check:
+	. "${VENV_PATH}/bin/activate"   && kodi-addon-checker --branch matrix | grep -vP '/(.venv|__pycache__|.idea)/'
+
+kodi-package: kodi-addon-check
 	git archive HEAD -o "$$(basename "$$(realpath .)")"-0.3.0.zip --prefix="$$(basename "$$(realpath .)")/" ':(exclude,glob)**/.gitignore' ':!.idea' ':!requirements.txt'

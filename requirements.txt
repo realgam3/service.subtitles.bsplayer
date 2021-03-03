@@ -1,1 +1,2 @@
 kodistubs
+kodi-addon-checker
