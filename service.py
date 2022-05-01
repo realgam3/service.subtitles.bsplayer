@@ -1,8 +1,8 @@
 # -*- coding: utf-8 -*-
 import sys
-import urllib
 import shutil
 from os import path
+from urllib import parse
 
 import xbmc
 import xbmcvfs
@@ -20,43 +20,47 @@ __scriptname__ = __addon__.getAddonInfo('name')
 __version__ = __addon__.getAddonInfo('version')
 __language__ = __addon__.getLocalizedString
 
-__cwd__ = xbmc.translatePath(__addon__.getAddonInfo('path')).decode("utf-8")
-__profile__ = xbmc.translatePath(__addon__.getAddonInfo('profile')).decode("utf-8")
-__resource__ = xbmc.translatePath(path.join(__cwd__, 'resources', 'lib')).decode("utf-8")
-__temp__ = xbmc.translatePath(path.join(__profile__, 'temp', '')).decode("utf-8")
-
+__cwd__ = xbmc.translatePath(__addon__.getAddonInfo("path"))
+__profile__ = xbmc.translatePath(__addon__.getAddonInfo("profile"))
+__resource__ = xbmc.translatePath(path.join(__cwd__, "resources", "lib"))
+__temp__ = xbmc.translatePath(path.join(__profile__, "temp", ""))
 
 params = get_params()
-log("BSPlayer.params", "Current Action: %s." % params['action'])
+log(f"BSPlayer.params", f"Current Action: {params['action']}.")
 if params['action'] == 'search':
     video_path = get_video_path()
     if video_path.startswith('http://') or video_path.startswith('https://'):
         notify(__scriptname__, __language__, 32001)
         log("BSPlayer.get_video_path", "Streaming not supported.")
 
-    log("BSPlayer.video_path", "Current Video Path: %s." % video_path)
+    log("BSPlayer.video_path", f"Current Video Path: {video_path}.")
     languages = get_languages_dict(params['languages'])
-    log("BSPlayer.languages", "Current Languages: %s." % languages)
+    log("BSPlayer.languages", f"Current Languages: {languages}.")
 
     with BSPlayer() as bsp:
-        subtitles = bsp.search_subtitles(video_path, language_ids=languages.keys())
+        subtitles = bsp.search_subtitles(video_path, language_ids=list(languages.keys()))
+        log("BSPlayer.subtitles", f"Subtitles found: {subtitles}.")
         for subtitle in sorted(subtitles, key=lambda s: s['subLang']):
             list_item = xbmcgui.ListItem(
                 label=languages[subtitle['subLang']],
                 label2=subtitle['subName'],
-                thumbnailImage=xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1)
             )
+            list_item.setArt({
+                "icon": f"{float(subtitle['subRating']) / 2}",
+                "thumb": xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1)
+            })
+            list_item.setProperty("sync", "true")
 
             plugin_url = "plugin://{path}/?{query}".format(
                 path=__scriptid__,
-                query=urllib.urlencode(dict(
+                query=parse.urlencode(dict(
                     action='download',
                     link=subtitle['subDownloadLink'],
                     file_name=subtitle['subName'],
                     format=subtitle['subFormat']
                 ))
             )
-            log("BSPlayer.plugin_url", "Plugin Url Created: %s." % plugin_url)
+            log("BSPlayer.plugin_url", f"Plugin Url Created: {plugin_url}.")
             xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=plugin_url, listitem=list_item, isFolder=False)
 elif params['action'] == 'manualsearch':
     notify(__scriptname__, __language__, 32002)
@@ -69,9 +73,9 @@ elif params['action'] == 'download':
     if params['format'] in ["srt", "sub", "txt", "smi", "ssa", "ass"]:
         subtitle_path = path.join(__temp__, params['file_name'])
         if BSPlayer.download_subtitles(params['link'], subtitle_path):
-            log("BSPlayer.download_subtitles", "Subtitles Download Successfully From: %s." % params['link'])
+            log("BSPlayer.download_subtitles", f"Subtitles Download Successfully From: {params['link']}")
             list_item = xbmcgui.ListItem(label=subtitle_path)
-            log("BSPlayer.download", "Downloaded Subtitle Path: %s" % subtitle_path)
+            log("BSPlayer.download", f"Downloaded Subtitle Path: {subtitle_path}")
             xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=subtitle_path, listitem=list_item, isFolder=False)
 
 xbmcplugin.endOfDirectory(int(sys.argv[1]))
