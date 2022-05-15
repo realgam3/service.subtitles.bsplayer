@@ -9,10 +9,10 @@
     <extension point="xbmc.subtitle.module" library="service.py"/>
     <extension point="xbmc.addon.metadata">
         <summary lang="en">
-            Kodi / XBMC BSPlayer Subtitles allows for downloading subtitles from the bsplayer subtitles community.
+            BSPlayer Subtitles
         </summary>
         <description lang="en">
-            Search and download various subtitles from the bsplayer subtitles community.
+            Search and download various subtitles from the BSPlayer subtitles community.
         </description>
         <source>https://github.com/realgam3/service.subtitles.bsplayer</source>
         <email>realgam3@gmail.com</email>

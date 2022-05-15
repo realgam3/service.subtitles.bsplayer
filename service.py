@@ -49,17 +49,14 @@ if params['action'] == 'search':
                 "icon": f"{float(subtitle['subRating']) / 2}",
                 "thumb": xbmc.convertLanguage(subtitle["subLang"], xbmc.ISO_639_1)
             })
-            list_item.setProperty("sync", "true")
 
-            plugin_url = "plugin://{path}/?{query}".format(
-                path=__scriptid__,
-                query=parse.urlencode(dict(
-                    action='download',
-                    link=subtitle['subDownloadLink'],
-                    file_name=subtitle['subName'],
-                    format=subtitle['subFormat']
-                ))
-            )
+            query = parse.urlencode(dict(
+                action='download',
+                link=subtitle['subDownloadLink'],
+                file_name=subtitle['subName'],
+                format=subtitle['subFormat']
+            ))
+            plugin_url = f"plugin://{__scriptid__}/?{query}"
             log("BSPlayer.plugin_url", f"Plugin Url Created: {plugin_url}.")
             xbmcplugin.addDirectoryItem(handle=int(sys.argv[1]), url=plugin_url, listitem=list_item, isFolder=False)
 elif params['action'] == 'manualsearch':
