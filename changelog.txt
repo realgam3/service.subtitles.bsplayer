@@ -1,3 +1,6 @@
+0.3.0 - 15/05/2022
+- Migrating to python 3, support kodi 19
+
 0.2.1 - 07/11/2015
 - Fixed android non rar support, rearrange code
 
