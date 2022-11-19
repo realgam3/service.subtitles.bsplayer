@@ -9,7 +9,7 @@ import xbmc
 
 
 def log(module, msg):
-    xbmc.log(f"### [{module}] - {msg}", level=xbmc.LOGDEBUG)
+    xbmc.log(f"### [BSPlayer::{module}] - {msg}", level=xbmc.LOGDEBUG)
 
 
 def notify(script_name, language, string_id):

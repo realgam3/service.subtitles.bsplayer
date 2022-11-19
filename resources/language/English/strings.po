@@ -21,3 +21,19 @@ msgstr ""
 msgctxt "#32002"
 msgid "Manual search not supported."
 msgstr ""
+
+msgctxt "#32003"
+msgid "Username"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Password"
+msgstr ""
+
+msgctxt "#32005"
+msgid "Your OpenSubtitles.org username or password is empty"
+msgstr ""
+
+msgctxt "#32006"
+msgid "OpenSubtitles Login Details"
+msgstr ""
