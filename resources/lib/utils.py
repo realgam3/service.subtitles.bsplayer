@@ -5,11 +5,23 @@ from urllib import parse, request
 from http.cookiejar import CookieJar
 from http.client import HTTPConnection
 
-import xbmc
+try:
+    import xbmc
+    import xbmcvfs
+
+    logger = xbmc.log
+    LOG_LEVEL = xbmc.LOGDEBUG
+    file = xbmcvfs.File
+except ModuleNotFoundError:
+    import logging
+
+    logger = logging.getLogger(__name__).log
+    LOG_LEVEL = logging.DEBUG
+    file = open
 
 
 def log(module, msg):
-    xbmc.log(f"### [BSPlayer::{module}] - {msg}", level=xbmc.LOGDEBUG)
+    logger(msg=f"### [BSPlayer::{module}] - {msg}", level=LOG_LEVEL)
 
 
 def notify(script_name, language, string_id):
@@ -76,7 +88,7 @@ def __get_last_split(firs_rar_file, x):
 
 
 def __add_file_hash(name, file_hash, seek):
-    f = open(name, "rb")
+    f = file(name, "rb")
     f.seek(max(0, seek), 0)
     for i in range(8192):
         file_hash += struct.unpack('<q', f.read(8))[0]
@@ -87,7 +99,7 @@ def __add_file_hash(name, file_hash, seek):
 
 def __movie_size_and_hash_rar(firs_rar_file):
     log('utils.movie_size_and_hash', 'Hashing Rar file...')
-    f = open(firs_rar_file, 'rb')
+    f = file(firs_rar_file, 'rb')
     a = f.read(4)
     if a != b'Rar!':
         log('utils.movie_size_and_hash', 'ERROR: This is not rar file (%s).' % path.basename(firs_rar_file))
@@ -128,7 +140,7 @@ def movie_size_and_hash(file_path):
     byte_size = struct.calcsize(longlong_format)
 
     file_size = path.getsize(file_path)
-    f = open(file_path, 'rb')
+    f = file(file_path, 'rb')
     movie_hash = file_size
 
     if file_size < 65536 * 2:
