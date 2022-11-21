@@ -44,7 +44,7 @@ if params["action"] == "search":
     log("Service.languages", f"Current Languages: {languages}.")
 
     for engine_name, engine in engines.items():
-        kwargs = {"proxies": {"http": "127.0.0.1:8888"}}
+        kwargs = {}
         if engine_name == "OpenSubtitles":
             username = __addon__.getSetting("OSuser")
             password = __addon__.getSetting("OSpass")
