@@ -1,3 +1,4 @@
+import io
 import sys
 import struct
 from os import path
@@ -14,7 +15,7 @@ try:
 
 
     class file(xbmcvfs.File):
-        def __init__(self, filepath, mode):
+        def __init__(self, filepath, mode="r"):
             super(file, self).__init__(filepath, mode)
             self.mode = mode
 
@@ -25,7 +26,6 @@ try:
 
 except ModuleNotFoundError:
     import logging
-    import functools
 
     logger = logging.getLogger(__name__).log
     LOG_LEVEL = logging.DEBUG
@@ -34,9 +34,6 @@ except ModuleNotFoundError:
 
 def log(module, msg):
     logger(msg=f"### [BSPlayer::{module}] - {msg}", level=LOG_LEVEL)
-
-
-log("Test", vars(file))
 
 
 def notify(script_name, language, string_id):
@@ -154,8 +151,9 @@ def movie_size_and_hash(file_path):
     longlong_format = "<q"  # little-endian long long
     byte_size = struct.calcsize(longlong_format)
 
-    file_size = path.getsize(file_path)
     f = file(file_path, "rb")
+    file_size = f.seek(0, io.SEEK_END)
+    f.seek(0)
     movie_hash = file_size
 
     if file_size < 65536 * 2:

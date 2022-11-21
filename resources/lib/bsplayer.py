@@ -186,20 +186,19 @@ class BSPlayer(BSPlayerSubtitleEngine):
             log("BSPlayer.search_subtitles", f"Status: {status}.")
             return []
 
-        items = root.findall(".//return/data/item")
+        items = root.findall(".//return/data/item") or []
         subtitles = []
-        if items:
-            for item in items:
-                subtitle = dict(
-                    subID=item.find("subID").text,
-                    subDownloadLink=item.find("subDownloadLink").text,
-                    subLang=item.find("subLang").text,
-                    subName=item.find("subName").text,
-                    subFormat=item.find("subFormat").text,
-                    subRating=item.find("subRating").text or "0"
-                )
-                subtitles.append(subtitle)
-            log("BSPlayer.search_subtitles", f"Subtitles Found: {json.dumps(subtitles)}.")
+        for item in items:
+            subtitle = dict(
+                subID=item.find("subID").text,
+                subDownloadLink=item.find("subDownloadLink").text,
+                subLang=item.find("subLang").text,
+                subName=item.find("subName").text,
+                subFormat=item.find("subFormat").text,
+                subRating=item.find("subRating").text or "0"
+            )
+            subtitles.append(subtitle)
+        log("BSPlayer.search_subtitles", f"Subtitles Found: {json.dumps(subtitles)}.")
 
         if logout:
             self.logout()
@@ -332,18 +331,17 @@ class OpenSubtitles(BSPlayerSubtitleEngine):
             } for item in root.findall(".//member/value/array/data/value")
         ]
         subtitles = []
-        if items:
-            for item in items:
-                subtitle = dict(
-                    subID=item.get("IDSubtitle"),
-                    subDownloadLink=item.get("SubDownloadLink"),
-                    subLang=item.get("sublanguageid"),
-                    subName=item.get("SubFileName"),
-                    subFormat=item.get("subFormat"),
-                    subRating=item.get("SubRating") or "0"
-                )
-                subtitles.append(subtitle)
-            log("OpenSubtitles.search_subtitles", f"Subtitles Found: {json.dumps(subtitles)}.")
+        for item in items:
+            subtitle = dict(
+                subID=item.get("IDSubtitle"),
+                subDownloadLink=item.get("SubDownloadLink"),
+                subLang=item.get("SubLanguageID"),
+                subName=item.get("SubFileName"),
+                subFormat=item.get("SubFormat"),
+                subRating=item.get("SubRating") or "0"
+            )
+            subtitles.append(subtitle)
+        log("OpenSubtitles.search_subtitles", f"Subtitles Found: {json.dumps(subtitles)}.")
 
         if logout:
             self.logout()
