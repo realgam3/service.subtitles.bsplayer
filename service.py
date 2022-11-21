@@ -21,10 +21,10 @@ __scriptname__ = __addon__.getAddonInfo("name")
 __version__ = __addon__.getAddonInfo("version")
 __language__ = __addon__.getLocalizedString
 
-__cwd__ = xbmc.translatePath(__addon__.getAddonInfo("path"))
-__profile__ = xbmc.translatePath(__addon__.getAddonInfo("profile"))
-__resource__ = xbmc.translatePath(path.join(__cwd__, "resources", "lib"))
-__temp__ = xbmc.translatePath(path.join(__profile__, "temp", ""))
+__cwd__ = xbmcvfs.translatePath(__addon__.getAddonInfo("path"))
+__profile__ = xbmcvfs.translatePath(__addon__.getAddonInfo("profile"))
+__resource__ = xbmcvfs.translatePath(path.join(__cwd__, "resources", "lib"))
+__temp__ = xbmcvfs.translatePath(path.join(__profile__, "temp", ""))
 
 engines = {
     "BSPlayer": BSPlayer,
@@ -44,19 +44,21 @@ if params["action"] == "search":
     log("Service.languages", f"Current Languages: {languages}.")
 
     for engine_name, engine in engines.items():
-        kwargs = {}
+        kwargs = {"proxies": {"http": "127.0.0.1:8888"}}
         if engine_name == "OpenSubtitles":
             username = __addon__.getSetting("OSuser")
             password = __addon__.getSetting("OSpass")
-            kwargs = {"username": username, "password": password}
-            if not username or not password:
-                notify(__scriptname__, __language__, 32002)
+            kwargs.update({"username": username, "password": password})
+            if not all([username, password]):
+                notify(__scriptname__, __language__, 32005)
+                log("Service.subtitles", "OpenSubtitles username or password is empty.")
+                continue
 
         try:
-            with engine(**kwargs) as bsp:
-                subtitles = bsp.search_subtitles(video_path, language_ids=list(languages.keys()))
+            with engine(**kwargs) as sub:
+                subtitles = sub.search_subtitles(video_path, language_ids=list(languages.keys()))
                 log("Service.subtitles", f"Subtitles found: {subtitles}.")
-                for subtitle in sorted(subtitles, key=lambda s: s['subLang']):
+                for subtitle in sorted(subtitles, key=lambda s: s["subLang"]):
                     list_item = xbmcgui.ListItem(
                         label=engine_name,
                         label2=subtitle["subName"],
